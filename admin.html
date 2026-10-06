@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Admin</title>
+
+style.css
+
+</head>
+
+<body>
+
+<h1>L-Gate Teacher Manager</h1>
+
+<div class="toolbar">
+
+<input
+id="search"
+placeholder="Szukaj nauczyciela..."
+onkeyup="renderTable()">
+
+<select id="filterType" onchange="renderTable()">
+<option value="">Wszystkie klasy</option>
+<option value="1">1 rok</option>
+<option value="2">2 rok</option>
+<option value="3">3 rok</option>
+</select>
+
+<button onclick="exportJSON()">
+Eksport JSON
+</button>
+
+<button onclick="copyJSON()">
+Kopiuj JSON
+</button>
+
+</div>
+
+<hr>
+
+<h2>Dodaj / Edytuj</h2>
+
+<input id="id" hidden>
+
+<input id="lgate" placeholder="Adres L-Gate">
+
+<input id="name" placeholder="Imię i nazwisko">
+
+<select id="type">
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+</select>
+
+<input id="year" placeholder="2025">
+
+<input id="className" placeholder="1-1">
+
+<button onclick="saveTeacher()">
+Zapisz nauczyciela
+</button>
+
+<hr>
+
+<table id="teacherTable">
+
+<thead>
+<tr>
+<th>L-Gate</th>
+<th>Imię</th>
+<th>Typ</th>
+<th>Rok</th>
+<th>Klasa</th>
+<th>Akcja</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+<h2>Aktualny JSON</h2>
+
+<textarea id="jsonOutput"></textarea>
+
+app.jsscript>
+
+</body>
+</html>
