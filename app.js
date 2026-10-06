@@ -82,8 +82,27 @@ function safeId(index = 0) {
   return "id_" + Date.now() + "_" + index;
 }
 
+function getSortedTeachersForExport() {
+  const data = [...teachers];
+
+  data.sort((a, b) => {
+    for (const sortRule of currentSorts) {
+      const result = compareValues(
+        a[sortRule.key],
+        b[sortRule.key],
+        sortRule.direction,
+        sortRule.key
+      );
+      if (result !== 0) return result;
+    }
+    return 0;
+  });
+
+  return data;
+}
+
 function syncJsonEditor() {
-  jsonOutput.value = JSON.stringify(teachers, null, 2);
+  jsonOutput.value = JSON.stringify(getSortedTeachersForExport(), null, 2);
 }
 
 function populateFilterOptionsFromCurrentTeachers() {
@@ -169,7 +188,7 @@ function compareValues(aValue, bValue, direction = "asc", key = "") {
 
   let result;
 
-  if (key === "grade" || key === "ban") {
+  if (key === "grade" || key === "ban" || key === "className") {
     const aNum = Number(aVal);
     const bNum = Number(bVal);
     const bothNumeric =
@@ -393,15 +412,17 @@ document.querySelectorAll(".sort-btn").forEach(btn => {
 });
 
 exportBtn.addEventListener("click", () => {
+  const sortedData = getSortedTeachersForExport();
   downloadTextFile(
     "teachers.json",
-    JSON.stringify(teachers, null, 2),
+    JSON.stringify(sortedData, null, 2),
     "application/json"
   );
 });
 
 exportCsvBtn.addEventListener("click", () => {
-  const csv = toCSV(teachers);
+  const sortedData = getSortedTeachersForExport();
+  const csv = toCSV(sortedData);
   downloadTextFile("teachers.csv", csv, "text/csv;charset=utf-8");
 });
 
@@ -420,7 +441,7 @@ downloadSampleCsvBtn.addEventListener("click", () => {
 
 copyBtn.addEventListener("click", async () => {
   try {
-    await navigator.clipboard.writeText(JSON.stringify(teachers, null, 2));
+    await navigator.clipboard.writeText(JSON.stringify(getSortedTeachersForExport(), null, 2));
     alert("JSON skopiowany do schowka.");
   } catch {
     alert("Nie udało się skopiować. Skopiuj ręcznie z pola poniżej.");
