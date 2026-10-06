@@ -137,23 +137,28 @@ function normalizeNumberText(value) {
   return String(value ?? "").trim();
 }
 
-function isIntegerLike(value) {
-  return /^\d+$/.test(normalizeNumberText(value));
+function toNumericOrNull(value) {
+  const text = normalizeNumberText(value);
+  if (/^\d+$/.test(text)) {
+    return parseInt(text, 10);
+  }
+  return null;
 }
 
 function compareNumericTextAsc(a, b) {
   const aText = normalizeNumberText(a);
   const bText = normalizeNumberText(b);
 
-  const aIsNum = isIntegerLike(aText);
-  const bIsNum = isIntegerLike(bText);
+  const aNum = toNumericOrNull(aText);
+  const bNum = toNumericOrNull(bText);
 
-  if (aIsNum && bIsNum) {
-    return parseInt(aText, 10) - parseInt(bText, 10);
+  if (aNum !== null && bNum !== null) {
+    if (aNum !== bNum) return aNum - bNum;
+    return aText.localeCompare(bText, "ja", { sensitivity: "base" });
   }
 
-  if (aIsNum && !bIsNum) return -1;
-  if (!aIsNum && bIsNum) return 1;
+  if (aNum !== null && bNum === null) return -1;
+  if (aNum === null && bNum !== null) return 1;
 
   return aText.localeCompare(bText, "ja", { sensitivity: "base" });
 }
@@ -183,21 +188,6 @@ function applyFilters() {
   updateSortButtonsUI();
 }
 
-function sortFilteredTeachers() {
-  filteredTeachers.sort((a, b) => {
-    for (const sortRule of currentSorts) {
-      const result = compareValues(
-        a[sortRule.key],
-        b[sortRule.key],
-        sortRule.direction,
-        sortRule.key
-      );
-      if (result !== 0) return result;
-    }
-    return 0;
-  });
-}
-
 function compareValues(aValue, bValue, direction = "asc", key = "") {
   const aVal = String(aValue || "").trim();
   const bVal = String(bValue || "").trim();
@@ -211,6 +201,25 @@ function compareValues(aValue, bValue, direction = "asc", key = "") {
   }
 
   return direction === "asc" ? result : -result;
+}
+
+function sortByCurrentRules(data) {
+  data.sort((a, b) => {
+    for (const sortRule of currentSorts) {
+      const result = compareValues(
+        a[sortRule.key],
+        b[sortRule.key],
+        sortRule.direction,
+        sortRule.key
+      );
+      if (result !== 0) return result;
+    }
+    return 0;
+  });
+}
+
+function sortFilteredTeachers() {
+  sortByCurrentRules(filteredTeachers);
 }
 
 function setSort(key) {
@@ -414,7 +423,7 @@ teacherForm.addEventListener("submit", (e) => {
   teacherDialog.close();
   populateFilterOptionsFromCurrentTeachers();
   applyFilters();
-});
+}
 
 cancelBtn.addEventListener("click", () => teacherDialog.close());
 addBtn.addEventListener("click", openAddDialog);
@@ -433,20 +442,7 @@ document.querySelectorAll(".sort-btn").forEach(btn => {
 
 function getSortedTeachersForExport() {
   const data = [...teachers];
-
-  data.sort((a, b) => {
-    for (const sortRule of currentSorts) {
-      const result = compareValues(
-        a[sortRule.key],
-        b[sortRule.key],
-        sortRule.direction,
-        sortRule.key
-      );
-      if (result !== 0) return result;
-    }
-    return 0;
-  });
-
+  sortByCurrentRules(data);
   return data;
 }
 
