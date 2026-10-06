@@ -137,25 +137,22 @@ function normalizeNumberText(value) {
   return String(value ?? "").trim();
 }
 
-function extractLeadingNumber(value) {
+function extractSortNumber(value) {
   const text = normalizeNumberText(value);
   const match = text.match(/^\d+/);
-  return match ? parseInt(match[0], 10) : null;
+  return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
 }
 
 function compareJapaneseNumberTextAsc(a, b) {
   const aText = normalizeNumberText(a);
   const bText = normalizeNumberText(b);
 
-  const aNum = extractLeadingNumber(aText);
-  const bNum = extractLeadingNumber(bText);
+  const aNum = extractSortNumber(aText);
+  const bNum = extractSortNumber(bText);
 
-  if (aNum !== null && bNum !== null) {
+  if (aNum !== bNum) {
     return aNum - bNum;
   }
-
-  if (aNum !== null && bNum === null) return -1;
-  if (aNum === null && bNum !== null) return 1;
 
   return aText.localeCompare(bText, "ja", { sensitivity: "base" });
 }
