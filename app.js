@@ -46,6 +46,7 @@ const nameField = document.getElementById("name");
 const schoolName = document.getElementById("schoolName");
 const grade = document.getElementById("grade");
 const className = document.getElementById("className");
+const ban = document.getElementById("ban");
 const deviceNumber = document.getElementById("deviceNumber");
 
 async function loadTeachers() {
@@ -69,6 +70,7 @@ function normalizeTeachers(data) {
     schoolName: String(row.schoolName || row["学校名"] || "").trim(),
     grade: String(row.grade || row["年"] || "").trim(),
     className: String(row.className || row["組"] || row.group || "").trim(),
+    ban: String(row.ban || row["番"] || "").trim(),
     deviceNumber: String(row.deviceNumber || row["端末番号"] || row.role || "").trim()
   }));
 }
@@ -161,7 +163,7 @@ function compareValues(aValue, bValue, direction = "asc", key = "") {
 
   let result;
 
-  if (key === "grade") {
+  if (key === "grade" || key === "ban") {
     const aNum = Number(aVal);
     const bNum = Number(bVal);
     const bothNumeric = aVal !== "" && bVal !== "" && !Number.isNaN(aNum) && !Number.isNaN(bNum);
@@ -217,6 +219,7 @@ function getSortLabel(key) {
     schoolName: "学校名",
     grade: "年",
     className: "組",
+    ban: "番",
     deviceNumber: "端末番号"
   };
 
@@ -266,6 +269,7 @@ function renderTable() {
       <td>${escapeHtml(t.schoolName || "")}</td>
       <td>${escapeHtml(t.grade || "")}</td>
       <td>${escapeHtml(t.className || "")}</td>
+      <td>${escapeHtml(t.ban || "")}</td>
       <td class="device-cell ${isDuplicate ? "duplicate-device" : ""}" style="${isDuplicate ? `background:${duplicateColor}; font-weight:600;` : ""}">
         ${escapeHtml(deviceValue)}
       </td>
@@ -304,6 +308,7 @@ function openAddDialog() {
   schoolName.value = "";
   grade.value = "";
   className.value = "";
+  ban.value = "";
   deviceNumber.value = "";
   teacherDialog.showModal();
 }
@@ -319,6 +324,7 @@ function openEditDialog(id) {
   schoolName.value = t.schoolName || "";
   grade.value = t.grade || "";
   className.value = t.className || "";
+  ban.value = t.ban || "";
   deviceNumber.value = t.deviceNumber || "";
   teacherDialog.showModal();
 }
@@ -340,6 +346,7 @@ teacherForm.addEventListener("submit", (e) => {
     schoolName: schoolName.value.trim(),
     grade: grade.value.trim(),
     className: className.value.trim(),
+    ban: ban.value.trim(),
     deviceNumber: deviceNumber.value.trim()
   };
 
@@ -382,10 +389,10 @@ exportCsvBtn.addEventListener("click", () => {
 
 downloadSampleCsvBtn.addEventListener("click", () => {
   const sampleRows = [
-    ["email", "name", "schoolName", "grade", "className", "deviceNumber"],
-    ["fujiwara758@o365.suita.ed.jp", "藤原 光矢", "第一小学校", "3", "1", "0012"],
-    ["aoyama090@o365.suita.ed.jp", "青山 正道", "第一小学校", "3", "2", "0012"],
-    ["ruh302@o365.suita.ed.jp", "安食 葵", "第二小学校", "2", "1", "0045"]
+    ["email", "name", "schoolName", "grade", "className", "ban", "deviceNumber"],
+    ["fujiwara758@o365.suita.ed.jp", "藤原 光矢", "第一小学校", "3", "1", "1", "0012"],
+    ["aoyama090@o365.suita.ed.jp", "青山 正道", "第一小学校", "3", "2", "2", "0012"],
+    ["ruh302@o365.suita.ed.jp", "安食 葵", "第二小学校", "2", "1", "3", "0045"]
   ];
 
   const csv = "\uFEFF" + sampleRows.map(row => row.map(csvEscape).join(",")).join("\n");
@@ -429,6 +436,7 @@ csvFile.addEventListener("change", async (e) => {
       schoolName: String(row.schoolName || row["学校名"] || "").trim(),
       grade: String(row.grade || row["年"] || "").trim(),
       className: String(row.className || row["組"] || row.group || "").trim(),
+      ban: String(row.ban || row["番"] || "").trim(),
       deviceNumber: String(row.deviceNumber || row["端末番号"] || row.role || "").trim()
     }));
 
@@ -493,7 +501,7 @@ function csvEscape(value) {
 }
 
 function toCSV(data) {
-  const headers = ["email", "name", "schoolName", "grade", "className", "deviceNumber"];
+  const headers = ["email", "name", "schoolName", "grade", "className", "ban", "deviceNumber"];
   const rows = [
     headers,
     ...data.map(item => headers.map(h => item[h] ?? ""))
