@@ -59,11 +59,17 @@ async function loadTeachers() {
     const res = await fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (!res.ok) throw new Error("Nie udało się wczytać teachers.json");
     const data = await res.json();
-    teachers = Array.isArray(data) ? normalizeTeachers(data) : [];
+
+    if (!Array.isArray(data)) {
+      throw new Error("Plik teachers.json musi zawierać tablicę.");
+    }
+
+    teachers = normalizeTeachers(data);
     populateFilterOptionsFromCurrentTeachers();
     applyFilters();
   } catch (err) {
-    alert(err.message);
+    console.error(err);
+    alert(err.message || "Nie udało się wczytać teachers.json");
   }
 }
 
@@ -87,6 +93,48 @@ function safeId(index = 0) {
   return "id_" + Date.now() + "_" + index;
 }
 
+function normalizeNumericString(value) {
+  return String(value ?? "").trim().replace(",", ".");
+}
+
+function isPureNumber(value) {
+  return /^-?\d+(\.\d+)?$/.test(normalizeNumericString(value));
+}
+
+function compareNumericStrings(aValue, bValue) {
+  const aVal = normalizeNumericString(aValue);
+  const bVal = normalizeNumericString(bValue);
+
+  const aIsNum = isPureNumber(aVal);
+  const bIsNum = isPureNumber(bVal);
+
+  if (aIsNum && bIsNum) {
+    const diff = Number(aVal) - Number(bVal);
+    if (diff !== 0) return diff;
+    return aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
+  }
+
+  if (aIsNum && !bIsNum) return -1;
+  if (!aIsNum && bIsNum) return 1;
+
+  return aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
+}
+
+function compareValues(aValue, bValue, direction = "asc", key = "") {
+  const aVal = String(aValue || "").trim();
+  const bVal = String(bValue || "").trim();
+
+  let result;
+
+  if (NUMERIC_SORT_KEYS.has(key)) {
+    result = compareNumericStrings(aVal, bVal);
+  } else {
+    result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
+  }
+
+  return direction === "asc" ? result : -result;
+}
+
 function getSortedTeachersForExport() {
   const data = [...teachers];
 
@@ -107,7 +155,7 @@ function getSortedTeachersForExport() {
 }
 
 function syncJsonEditor() {
-  jsonOutput.value = JSON.stringify(getSortedTeachersForExport(), null, 2);
+  jsonOutput.value = JSON.stringify(teachers, null, 2);
 }
 
 function populateFilterOptionsFromCurrentTeachers() {
@@ -152,33 +200,6 @@ function fillSelect(selectEl, defaultLabel, values) {
   }
 }
 
-function normalizeNumericString(value) {
-  return String(value ?? "").trim().replace(",", ".");
-}
-
-function isPureNumber(value) {
-  return /^-?\d+(\.\d+)?$/.test(normalizeNumericString(value));
-}
-
-function compareNumericStrings(aValue, bValue) {
-  const aVal = normalizeNumericString(aValue);
-  const bVal = normalizeNumericString(bValue);
-
-  const aIsNum = isPureNumber(aVal);
-  const bIsNum = isPureNumber(bVal);
-
-  if (aIsNum && bIsNum) {
-    const diff = Number(aVal) - Number(bVal);
-    if (diff !== 0) return diff;
-    return aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
-  }
-
-  if (aIsNum && !bIsNum) return -1;
-  if (!aIsNum && bIsNum) return 1;
-
-  return aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
-}
-
 function applyFilters() {
   const schoolVal = filterSchool.value.trim().toLowerCase();
   const gradeVal = filterGrade.value.trim().toLowerCase();
@@ -217,21 +238,6 @@ function sortFilteredTeachers() {
     }
     return 0;
   });
-}
-
-function compareValues(aValue, bValue, direction = "asc", key = "") {
-  const aVal = String(aValue || "").trim();
-  const bVal = String(bValue || "").trim();
-
-  let result;
-
-  if (NUMERIC_SORT_KEYS.has(key)) {
-    result = compareNumericStrings(aVal, bVal);
-  } else {
-    result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
-  }
-
-  return direction === "asc" ? result : -result;
 }
 
 function setSort(key) {
