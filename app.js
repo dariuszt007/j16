@@ -4,7 +4,9 @@ let teachers = [];
 let filteredTeachers = [];
 
 let currentSorts = [
-  { key: "name", direction: "asc" }
+  { key: "grade", direction: "asc" },
+  { key: "className", direction: "asc" },
+  { key: "ban", direction: "asc" }
 ];
 
 const DUPLICATE_COLORS = [
