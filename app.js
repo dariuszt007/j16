@@ -61,7 +61,6 @@ async function loadTeachers() {
     populateFilterOptionsFromCurrentTeachers();
     applyFilters();
   } catch (err) {
-    console.error(err);
     alert(err.message);
   }
 }
@@ -86,8 +85,27 @@ function safeId(index = 0) {
   return "id_" + Date.now() + "_" + index;
 }
 
+function getSortedTeachersForExport() {
+  const data = [...teachers];
+
+  data.sort((a, b) => {
+    for (const sortRule of currentSorts) {
+      const result = compareValues(
+        a[sortRule.key],
+        b[sortRule.key],
+        sortRule.direction,
+        sortRule.key
+      );
+      if (result !== 0) return result;
+    }
+    return 0;
+  });
+
+  return data;
+}
+
 function syncJsonEditor() {
-  jsonOutput.value = JSON.stringify(teachers, null, 2);
+  jsonOutput.value = JSON.stringify(getSortedTeachersForExport(), null, 2);
 }
 
 function populateFilterOptionsFromCurrentTeachers() {
@@ -97,17 +115,11 @@ function populateFilterOptionsFromCurrentTeachers() {
 }
 
 function uniqueValues(data, key) {
-  const values = [...new Set(
+  return [...new Set(
     data
       .map(item => String(item[key] || "").trim())
       .filter(Boolean)
-  )];
-
-  if (key === "grade" || key === "className" || key === "ban") {
-    return values.sort(compareNumericTextAsc);
-  }
-
-  return values.sort((a, b) => a.localeCompare(b, "ja", { sensitivity: "base" }));
+  )].sort((a, b) => a.localeCompare(b, "ja"));
 }
 
 function fillSelect(selectEl, defaultLabel, values) {
@@ -131,36 +143,6 @@ function fillSelect(selectEl, defaultLabel, values) {
   } else {
     selectEl.value = "";
   }
-}
-
-function normalizeNumberText(value) {
-  return String(value ?? "").trim();
-}
-
-function toNumericOrNull(value) {
-  const text = normalizeNumberText(value);
-  if (/^\d+$/.test(text)) {
-    return parseInt(text, 10);
-  }
-  return null;
-}
-
-function compareNumericTextAsc(a, b) {
-  const aText = normalizeNumberText(a);
-  const bText = normalizeNumberText(b);
-
-  const aNum = toNumericOrNull(aText);
-  const bNum = toNumericOrNull(bText);
-
-  if (aNum !== null && bNum !== null) {
-    if (aNum !== bNum) return aNum - bNum;
-    return aText.localeCompare(bText, "ja", { sensitivity: "base" });
-  }
-
-  if (aNum !== null && bNum === null) return -1;
-  if (aNum === null && bNum !== null) return 1;
-
-  return aText.localeCompare(bText, "ja", { sensitivity: "base" });
 }
 
 function applyFilters() {
@@ -188,23 +170,8 @@ function applyFilters() {
   updateSortButtonsUI();
 }
 
-function compareValues(aValue, bValue, direction = "asc", key = "") {
-  const aVal = String(aValue || "").trim();
-  const bVal = String(bValue || "").trim();
-
-  let result;
-
-  if (key === "grade" || key === "className" || key === "ban") {
-    result = compareNumericTextAsc(aVal, bVal);
-  } else {
-    result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
-  }
-
-  return direction === "asc" ? result : -result;
-}
-
-function sortByCurrentRules(data) {
-  data.sort((a, b) => {
+function sortFilteredTeachers() {
+  filteredTeachers.sort((a, b) => {
     for (const sortRule of currentSorts) {
       const result = compareValues(
         a[sortRule.key],
@@ -218,8 +185,31 @@ function sortByCurrentRules(data) {
   });
 }
 
-function sortFilteredTeachers() {
-  sortByCurrentRules(filteredTeachers);
+function compareValues(aValue, bValue, direction = "asc", key = "") {
+  const aVal = String(aValue || "").trim();
+  const bVal = String(bValue || "").trim();
+
+  let result;
+
+  if (key === "grade" || key === "ban" || key === "className") {
+    const aNum = Number(aVal);
+    const bNum = Number(bVal);
+    const bothNumeric =
+      aVal !== "" &&
+      bVal !== "" &&
+      !Number.isNaN(aNum) &&
+      !Number.isNaN(bNum);
+
+    if (bothNumeric) {
+      result = aNum - bNum;
+    } else {
+      result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
+    }
+  } else {
+    result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
+  }
+
+  return direction === "asc" ? result : -result;
 }
 
 function setSort(key) {
@@ -423,7 +413,7 @@ teacherForm.addEventListener("submit", (e) => {
   teacherDialog.close();
   populateFilterOptionsFromCurrentTeachers();
   applyFilters();
-}
+});
 
 cancelBtn.addEventListener("click", () => teacherDialog.close());
 addBtn.addEventListener("click", openAddDialog);
@@ -439,12 +429,6 @@ document.querySelectorAll(".sort-btn").forEach(btn => {
     setSort(btn.dataset.sort);
   });
 });
-
-function getSortedTeachersForExport() {
-  const data = [...teachers];
-  sortByCurrentRules(data);
-  return data;
-}
 
 exportBtn.addEventListener("click", () => {
   const sortedData = getSortedTeachersForExport();
@@ -476,7 +460,7 @@ downloadSampleCsvBtn.addEventListener("click", () => {
 
 copyBtn.addEventListener("click", async () => {
   try {
-    await navigator.clipboard.writeText(JSON.stringify(teachers, null, 2));
+    await navigator.clipboard.writeText(JSON.stringify(getSortedTeachersForExport(), null, 2));
     alert("JSON skopiowany do schowka.");
   } catch {
     alert("Nie udało się skopiować. Skopiuj ręcznie z pola poniżej.");
@@ -519,7 +503,6 @@ csvFile.addEventListener("change", async (e) => {
     applyFilters();
     alert("CSV został zaimportowany.");
   } catch (err) {
-    console.error(err);
     alert("Nie udało się odczytać CSV.");
   }
 
