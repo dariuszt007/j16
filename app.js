@@ -9,6 +9,9 @@ let currentSorts = [
   { key: "ban", direction: "asc" }
 ];
 
+const DEFAULT_SORT_ORDER = ["grade", "className", "ban"];
+const NUMERIC_SORT_KEYS = new Set(["grade", "className", "ban"]);
+
 const DUPLICATE_COLORS = [
   "#ffe0e0",
   "#e0f0ff",
@@ -118,7 +121,12 @@ function uniqueValues(data, key) {
     data
       .map(item => String(item[key] || "").trim())
       .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, "ja"));
+  )].sort((a, b) => {
+    if (NUMERIC_SORT_KEYS.has(key)) {
+      return compareNumericStrings(a, b);
+    }
+    return a.localeCompare(b, "ja", { sensitivity: "base" });
+  });
 }
 
 function fillSelect(selectEl, defaultLabel, values) {
@@ -142,6 +150,33 @@ function fillSelect(selectEl, defaultLabel, values) {
   } else {
     selectEl.value = "";
   }
+}
+
+function normalizeNumericString(value) {
+  return String(value ?? "").trim().replace(",", ".");
+}
+
+function isPureNumber(value) {
+  return /^-?\d+(\.\d+)?$/.test(normalizeNumericString(value));
+}
+
+function compareNumericStrings(aValue, bValue) {
+  const aVal = normalizeNumericString(aValue);
+  const bVal = normalizeNumericString(bValue);
+
+  const aIsNum = isPureNumber(aVal);
+  const bIsNum = isPureNumber(bVal);
+
+  if (aIsNum && bIsNum) {
+    const diff = Number(aVal) - Number(bVal);
+    if (diff !== 0) return diff;
+    return aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
+  }
+
+  if (aIsNum && !bIsNum) return -1;
+  if (!aIsNum && bIsNum) return 1;
+
+  return aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
 }
 
 function applyFilters() {
@@ -190,20 +225,8 @@ function compareValues(aValue, bValue, direction = "asc", key = "") {
 
   let result;
 
-  if (key === "grade" || key === "ban" || key === "className") {
-    const aNum = Number(aVal);
-    const bNum = Number(bVal);
-    const bothNumeric =
-      aVal !== "" &&
-      bVal !== "" &&
-      !Number.isNaN(aNum) &&
-      !Number.isNaN(bNum);
-
-    if (bothNumeric) {
-      result = aNum - bNum;
-    } else {
-      result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
-    }
+  if (NUMERIC_SORT_KEYS.has(key)) {
+    result = compareNumericStrings(aVal, bVal);
   } else {
     result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
   }
@@ -212,16 +235,32 @@ function compareValues(aValue, bValue, direction = "asc", key = "") {
 }
 
 function setSort(key) {
-  const existingIndex = currentSorts.findIndex(sort => sort.key === key);
+  if (DEFAULT_SORT_ORDER.includes(key)) {
+    const currentRule = currentSorts.find(sort => sort.key === key);
+    const currentDirection = currentRule ? currentRule.direction : "asc";
+    const nextDirection = currentDirection === "asc" ? "desc" : "asc";
 
-  if (existingIndex === 0) {
-    currentSorts[0].direction =
-      currentSorts[0].direction === "asc" ? "desc" : "asc";
-  } else if (existingIndex > 0) {
-    const existing = currentSorts.splice(existingIndex, 1)[0];
-    currentSorts.unshift(existing);
+    currentSorts = DEFAULT_SORT_ORDER.map(sortKey => {
+      const existing = currentSorts.find(sort => sort.key === sortKey);
+      return {
+        key: sortKey,
+        direction: sortKey === key
+          ? nextDirection
+          : (existing ? existing.direction : "asc")
+      };
+    });
   } else {
-    currentSorts.unshift({ key, direction: "asc" });
+    const existingIndex = currentSorts.findIndex(sort => sort.key === key);
+
+    if (existingIndex === 0) {
+      currentSorts[0].direction =
+        currentSorts[0].direction === "asc" ? "desc" : "asc";
+    } else if (existingIndex > 0) {
+      const existing = currentSorts.splice(existingIndex, 1)[0];
+      currentSorts.unshift(existing);
+    } else {
+      currentSorts.unshift({ key, direction: "asc" });
+    }
   }
 
   applyFilters();
@@ -396,7 +435,7 @@ teacherForm.addEventListener("submit", (e) => {
   teacherDialog.close();
   populateFilterOptionsFromCurrentTeachers();
   applyFilters();
-});
+}
 
 cancelBtn.addEventListener("click", () => teacherDialog.close());
 addBtn.addEventListener("click", openAddDialog);
