@@ -106,7 +106,7 @@ select {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 860px;
+  min-width: 980px;
 }
 
 th,
@@ -234,19 +234,17 @@ dialog::backdrop {
   display: none;
 }
 
-/* Kolumna 端末番号 */
 .device-cell {
-  border-radius: 8px;
   text-align: center;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.5px;
+  border-radius: 8px;
 }
 
 .duplicate-device {
   font-weight: 700;
 }
 
-/* Responsywność */
 @media (max-width: 768px) {
   .app {
     padding: 12px;
@@ -262,7 +260,7 @@ dialog::backdrop {
   }
 
   table {
-    min-width: 760px;
+    min-width: 900px;
   }
 }
 
