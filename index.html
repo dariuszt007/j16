@@ -5,51 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>L-Gate Teacher Manager</title>
 
-<style>
-body{
-font-family:Arial,sans-serif;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-background:#f5f5f5;
-}
-
-.login{
-background:white;
-padding:30px;
-border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,.2);
-width:350px;
-}
-
-input{
-width:100%;
-padding:10px;
-margin-top:10px;
-}
-
-button{
-margin-top:10px;
-width:100%;
-padding:10px;
-background:#1976d2;
-color:white;
-border:none;
-cursor:pointer;
-}
-
-button:hover{
-background:#1565c0;
-}
-</style>
+style.css
 
 </head>
-<body>
+<body class="login-page">
 
-<div class="login">
+<div class="login-card">
 
-<h2>L-Gate Teacher Manager</h2>
+<h1>L-Gate Manager</h1>
+
+<p>Panel administracyjny nauczycieli</p>
 
 <input
 type="password"
@@ -60,7 +25,7 @@ placeholder="Hasło">
 Zaloguj
 </button>
 
-<p id="msg"></p>
+<p id="error" class="error"></p>
 
 </div>
 
@@ -68,17 +33,19 @@ Zaloguj
 
 function login(){
 
-const p=document.getElementById("password").value;
+const password=
+document.getElementById("password").value;
 
-if(p==="1111"){
+if(password==="1111"){
 
-sessionStorage.setItem("logged","yes");
+sessionStorage.setItem("logged","true");
+
 location.href="admin.html";
 
 }else{
 
-document.getElementById("msg").innerText=
-"Błędne hasło";
+document.getElementById("error").textContent=
+"Nieprawidłowe hasło";
 
 }
 
