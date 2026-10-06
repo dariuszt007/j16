@@ -1,0 +1,1 @@
+Import CSV format: lgate,name,grade,group
