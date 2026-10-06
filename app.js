@@ -1,0 +1,616 @@
+const DATA_URL = "./teachers.json";
+
+let teachers = [];
+let filteredTeachers = [];
+
+let currentSorts = [
+  { key: "grade", direction: "asc" },
+  { key: "className", direction: "asc" },
+  { key: "ban", direction: "asc" }
+];
+
+const DEFAULT_SORT_ORDER = ["grade", "className", "ban"];
+const DUPLICATE_COLORS = [
+  "#ffe0e0",
+  "#e0f0ff",
+  "#e6ffe0",
+  "#fff4cc",
+  "#f0e0ff",
+  "#ffe8cc",
+  "#dfffe8",
+  "#e0ecff",
+  "#ffdff5",
+  "#e8f7d8"
+];
+
+const teacherTableBody = document.getElementById("teacherTableBody");
+const jsonOutput = document.getElementById("jsonOutput");
+
+const exportBtn = document.getElementById("exportBtn");
+const exportCsvBtn = document.getElementById("exportCsvBtn");
+const copyBtn = document.getElementById("copyBtn");
+const addBtn = document.getElementById("addBtn");
+const csvFile = document.getElementById("csvFile");
+const downloadSampleCsvBtn = document.getElementById("downloadSampleCsvBtn");
+
+const filterSchool = document.getElementById("filterSchool");
+const filterGrade = document.getElementById("filterGrade");
+const filterClass = document.getElementById("filterClass");
+const filterName = document.getElementById("filterName");
+
+const teacherDialog = document.getElementById("teacherDialog");
+const teacherForm = document.getElementById("teacherForm");
+const dialogTitle = document.getElementById("dialogTitle");
+const cancelBtn = document.getElementById("cancelBtn");
+
+const teacherId = document.getElementById("teacherId");
+const email = document.getElementById("email");
+const nameField = document.getElementById("name");
+const schoolName = document.getElementById("schoolName");
+const grade = document.getElementById("grade");
+const className = document.getElementById("className");
+const ban = document.getElementById("ban");
+const deviceNumber = document.getElementById("deviceNumber");
+
+async function loadTeachers() {
+  try {
+    const res = await fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("Nie udało się wczytać teachers.json");
+    const data = await res.json();
+    teachers = Array.isArray(data) ? normalizeTeachers(data) : [];
+    populateFilterOptionsFromCurrentTeachers();
+    applyFilters();
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
+}
+
+function normalizeTeachers(data) {
+  return data.map((row, index) => ({
+    id: row.id || safeId(index),
+    email: String(row.email || row.lgate || "").trim(),
+    name: String(row.name || row["名前"] || "").trim(),
+    schoolName: String(row.schoolName || row["学校名"] || "").trim(),
+    grade: String(row.grade || row["年"] || "").trim(),
+    className: String(row.className || row["組"] || row.group || "").trim(),
+    ban: String(row.ban || row.banName || row["番"] || "").trim(),
+    deviceNumber: String(row.deviceNumber || row.deviceName || row["端末番号"] || row.role || "").trim()
+  }));
+}
+
+function safeId(index = 0) {
+  if (window.crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return "id_" + Date.now() + "_" + index;
+}
+
+function syncJsonEditor() {
+  jsonOutput.value = JSON.stringify(teachers, null, 2);
+}
+
+function populateFilterOptionsFromCurrentTeachers() {
+  fillSelect(filterSchool, "学校名 / wszystkie szkoły", uniqueValues(teachers, "schoolName"));
+  fillSelect(filterGrade, "年 / wszystkie", uniqueValues(teachers, "grade"));
+  fillSelect(filterClass, "組 / wszystkie", uniqueValues(teachers, "className"));
+}
+
+function uniqueValues(data, key) {
+  const values = [...new Set(
+    data
+      .map(item => String(item[key] || "").trim())
+      .filter(Boolean)
+  )];
+
+  if (key === "grade" || key === "className" || key === "ban") {
+    return values.sort(compareJapaneseNumberTextAsc);
+  }
+
+  return values.sort((a, b) => a.localeCompare(b, "ja", { sensitivity: "base" }));
+}
+
+function fillSelect(selectEl, defaultLabel, values) {
+  const currentValue = selectEl.value;
+  selectEl.innerHTML = "";
+
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = defaultLabel;
+  selectEl.appendChild(defaultOption);
+
+  values.forEach(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    selectEl.appendChild(option);
+  });
+
+  if (values.includes(currentValue)) {
+    selectEl.value = currentValue;
+  } else {
+    selectEl.value = "";
+  }
+}
+
+function normalizeNumberText(value) {
+  return String(value ?? "").trim();
+}
+
+function extractSortNumber(value) {
+  const text = normalizeNumberText(value);
+  const match = text.match(/^\d+/);
+  return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
+}
+
+function compareJapaneseNumberTextAsc(a, b) {
+  const aText = normalizeNumberText(a);
+  const bText = normalizeNumberText(b);
+
+  const aNum = extractSortNumber(aText);
+  const bNum = extractSortNumber(bText);
+
+  if (aNum !== bNum) {
+    return aNum - bNum;
+  }
+
+  return aText.localeCompare(bText, "ja", { sensitivity: "base" });
+}
+
+function applyFilters() {
+  const schoolVal = filterSchool.value.trim().toLowerCase();
+  const gradeVal = filterGrade.value.trim().toLowerCase();
+  const classVal = filterClass.value.trim().toLowerCase();
+  const nameVal = filterName.value.trim().toLowerCase();
+
+  filteredTeachers = teachers.filter(t => {
+    const schoolMatch = !schoolVal || String(t.schoolName || "").toLowerCase() === schoolVal;
+    const gradeMatch = !gradeVal || String(t.grade || "").toLowerCase() === gradeVal;
+    const classMatch = !classVal || String(t.className || "").toLowerCase() === classVal;
+    const textMatch =
+      String(t.name || "").toLowerCase().includes(nameVal) ||
+      String(t.email || "").toLowerCase().includes(nameVal) ||
+      String(t.deviceNumber || "").toLowerCase().includes(nameVal) ||
+      String(t.ban || "").toLowerCase().includes(nameVal);
+
+    return schoolMatch && gradeMatch && classMatch && textMatch;
+  });
+
+  sortFilteredTeachers();
+  renderTable();
+  syncJsonEditor();
+  updateSortButtonsUI();
+}
+
+function compareValues(aValue, bValue, direction = "asc", key = "") {
+  const aVal = String(aValue || "").trim();
+  const bVal = String(bValue || "").trim();
+
+  let result;
+
+  if (key === "grade" || key === "className" || key === "ban") {
+    result = compareJapaneseNumberTextAsc(aVal, bVal);
+  } else {
+    result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
+  }
+
+  return direction === "asc" ? result : -result;
+}
+
+function sortByCurrentRules(data) {
+  data.sort((a, b) => {
+    for (const sortRule of currentSorts) {
+      const result = compareValues(
+        a[sortRule.key],
+        b[sortRule.key],
+        sortRule.direction,
+        sortRule.key
+      );
+      if (result !== 0) return result;
+    }
+    return 0;
+  });
+}
+
+function sortFilteredTeachers() {
+  sortByCurrentRules(filteredTeachers);
+}
+
+function setSort(key) {
+  if (DEFAULT_SORT_ORDER.includes(key)) {
+    const currentRule = currentSorts.find(sort => sort.key === key);
+    const currentDirection = currentRule ? currentRule.direction : "asc";
+    const nextDirection = currentDirection === "asc" ? "desc" : "asc";
+
+    currentSorts = DEFAULT_SORT_ORDER.map(sortKey => {
+      const existing = currentSorts.find(sort => sort.key === sortKey);
+      return {
+        key: sortKey,
+        direction: sortKey === key
+          ? nextDirection
+          : (existing ? existing.direction : "asc")
+      };
+    });
+  } else {
+    const existingIndex = currentSorts.findIndex(sort => sort.key === key);
+
+    if (existingIndex === 0) {
+      currentSorts[0].direction =
+        currentSorts[0].direction === "asc" ? "desc" : "asc";
+    } else if (existingIndex > 0) {
+      const existing = currentSorts.splice(existingIndex, 1)[0];
+      currentSorts.unshift(existing);
+    } else {
+      currentSorts.unshift({ key, direction: "asc" });
+    }
+  }
+
+  applyFilters();
+}
+
+function updateSortButtonsUI() {
+  const buttons = document.querySelectorAll(".sort-btn");
+
+  buttons.forEach(btn => {
+    const key = btn.dataset.sort;
+    const index = currentSorts.findIndex(sort => sort.key === key);
+
+    if (index >= 0) {
+      const direction = currentSorts[index].direction === "asc" ? "▲" : "▼";
+      const priority = index + 1;
+      btn.textContent = `${getSortLabel(key)} ${direction}${priority}`;
+    } else {
+      btn.textContent = getSortLabel(key);
+    }
+  });
+}
+
+function getSortLabel(key) {
+  const labels = {
+    email: "Email",
+    name: "名前",
+    schoolName: "学校名",
+    grade: "年",
+    className: "組",
+    ban: "番",
+    deviceNumber: "端末番号"
+  };
+
+  return labels[key] || key;
+}
+
+function buildDuplicateDeviceMap(data) {
+  const counts = new Map();
+
+  data.forEach(item => {
+    const value = String(item.deviceNumber || "").trim();
+    if (!value) return;
+    counts.set(value, (counts.get(value) || 0) + 1);
+  });
+
+  const duplicateValues = [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([value]) => value)
+    .sort((a, b) => a.localeCompare(b, "ja", { sensitivity: "base" }));
+
+  const colorMap = new Map();
+
+  duplicateValues.forEach((value, index) => {
+    colorMap.set(value, DUPLICATE_COLORS[index % DUPLICATE_COLORS.length]);
+  });
+
+  return {
+    counts,
+    colorMap
+  };
+}
+
+function renderTable() {
+  teacherTableBody.innerHTML = "";
+
+  const duplicateInfo = buildDuplicateDeviceMap(filteredTeachers);
+
+  filteredTeachers.forEach(t => {
+    const tr = document.createElement("tr");
+    const deviceValue = String(t.deviceNumber || "").trim();
+    const isDuplicate =
+      deviceValue && (duplicateInfo.counts.get(deviceValue) || 0) > 1;
+    const duplicateColor = isDuplicate
+      ? duplicateInfo.colorMap.get(deviceValue)
+      : "";
+
+    tr.innerHTML = `
+      <td>${escapeHtml(t.email || "")}</td>
+      <td>${escapeHtml(t.name || "")}</td>
+      <td>${escapeHtml(t.schoolName || "")}</td>
+      <td>${escapeHtml(t.grade || "")}</td>
+      <td>${escapeHtml(t.className || "")}</td>
+      <td>${escapeHtml(t.ban || "")}</td>
+      <td class="device-cell ${isDuplicate ? "duplicate-device" : ""}" style="${isDuplicate ? `background:${duplicateColor}; font-weight:600;` : ""}">
+        ${escapeHtml(deviceValue)}
+      </td>
+      <td>
+        <button type="button" class="action-btn" data-edit="${t.id}">Edytuj</button>
+        <button type="button" class="action-btn delete-btn" data-delete="${t.id}">Usuń</button>
+      </td>
+    `;
+
+    teacherTableBody.appendChild(tr);
+  });
+
+  document.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => openEditDialog(btn.dataset.edit));
+  });
+
+  document.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.addEventListener("click", () => deleteTeacher(btn.dataset.delete));
+  });
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function openAddDialog() {
+  dialogTitle.textContent = "Dodaj nauczyciela";
+  teacherId.value = "";
+  email.value = "";
+  nameField.value = "";
+  schoolName.value = "";
+  grade.value = "";
+  className.value = "";
+  ban.value = "";
+  deviceNumber.value = "";
+  teacherDialog.showModal();
+}
+
+function openEditDialog(id) {
+  const t = teachers.find(x => String(x.id) === String(id));
+  if (!t) return;
+
+  dialogTitle.textContent = "Edytuj nauczyciela";
+  teacherId.value = t.id || "";
+  email.value = t.email || "";
+  nameField.value = t.name || "";
+  schoolName.value = t.schoolName || "";
+  grade.value = t.grade || "";
+  className.value = t.className || "";
+  ban.value = t.ban || "";
+  deviceNumber.value = t.deviceNumber || "";
+  teacherDialog.showModal();
+}
+
+function deleteTeacher(id) {
+  if (!confirm("Na pewno usunąć ten wpis?")) return;
+  teachers = teachers.filter(t => String(t.id) !== String(id));
+  populateFilterOptionsFromCurrentTeachers();
+  applyFilters();
+}
+
+teacherForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const payload = {
+    id: teacherId.value || safeId(),
+    email: email.value.trim(),
+    name: nameField.value.trim(),
+    schoolName: schoolName.value.trim(),
+    grade: grade.value.trim(),
+    className: className.value.trim(),
+    ban: ban.value.trim(),
+    deviceNumber: deviceNumber.value.trim()
+  };
+
+  const index = teachers.findIndex(t => String(t.id) === String(payload.id));
+
+  if (index >= 0) {
+    teachers[index] = payload;
+  } else {
+    teachers.push(payload);
+  }
+
+  teacherDialog.close();
+  populateFilterOptionsFromCurrentTeachers();
+  applyFilters();
+}
+
+cancelBtn.addEventListener("click", () => teacherDialog.close());
+addBtn.addEventListener("click", openAddDialog);
+
+[filterSchool, filterGrade, filterClass].forEach(select => {
+  select.addEventListener("change", applyFilters);
+});
+
+filterName.addEventListener("input", applyFilters);
+
+document.querySelectorAll(".sort-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    setSort(btn.dataset.sort);
+  });
+});
+
+function getSortedTeachersForExport() {
+  const data = [...teachers];
+  sortByCurrentRules(data);
+  return data;
+}
+
+exportBtn.addEventListener("click", () => {
+  const sortedData = getSortedTeachersForExport();
+  downloadTextFile(
+    "teachers.json",
+    JSON.stringify(sortedData, null, 2),
+    "application/json"
+  );
+});
+
+exportCsvBtn.addEventListener("click", () => {
+  const sortedData = getSortedTeachersForExport();
+  const csv = toCSV(sortedData);
+  downloadTextFile("teachers.csv", csv, "text/csv;charset=utf-8");
+});
+
+downloadSampleCsvBtn.addEventListener("click", () => {
+  const sampleRows = [
+    ["email", "name", "schoolName", "grade", "className", "banName", "deviceNumber"],
+    ["fujiwara758@o365.suita.ed.jp", "藤原 光矢", "第一小学校", "3年", "1組", "1番", "0012"],
+    ["aoyama090@o365.suita.ed.jp", "青山 正道", "第一小学校", "3年", "2組", "2番", "0012"],
+    ["ruh302@o365.suita.ed.jp", "安食 葵", "第二小学校", "2年", "1組", "3番", "0045"]
+  ];
+
+  const csv =
+    "\uFEFF" + sampleRows.map(row => row.map(csvEscape).join(",")).join("\n");
+  downloadTextFile("sample_teachers.csv", csv, "text/csv;charset=utf-8");
+});
+
+copyBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(teachers, null, 2));
+    alert("JSON skopiowany do schowka.");
+  } catch {
+    alert("Nie udało się skopiować. Skopiuj ręcznie z pola poniżej.");
+  }
+});
+
+jsonOutput.addEventListener("change", () => {
+  try {
+    const parsed = JSON.parse(jsonOutput.value);
+    if (!Array.isArray(parsed)) throw new Error();
+    teachers = normalizeTeachers(parsed);
+    populateFilterOptionsFromCurrentTeachers();
+    applyFilters();
+  } catch {
+    alert("Niepoprawny JSON.");
+    syncJsonEditor();
+  }
+});
+
+csvFile.addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const rows = parseCSV(text);
+
+    teachers = rows.map((row, index) => ({
+      id: row.id || safeId(index),
+      email: String(row.email || row.lgate || "").trim(),
+      name: String(row.name || row["名前"] || "").trim(),
+      schoolName: String(row.schoolName || row["学校名"] || "").trim(),
+      grade: String(row.grade || row["年"] || "").trim(),
+      className: String(row.className || row["組"] || row.group || "").trim(),
+      ban: String(row.ban || row.banName || row["番"] || "").trim(),
+      deviceNumber: String(row.deviceNumber || row.deviceName || row["端末番号"] || row.role || "").trim()
+    }));
+
+    populateFilterOptionsFromCurrentTeachers();
+    applyFilters();
+    alert("CSV został zaimportowany.");
+  } catch (err) {
+    console.error(err);
+    alert("Nie udało się odczytać CSV.");
+  }
+
+  e.target.value = "";
+});
+
+function parseCSV(text) {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return [];
+
+  const headers = splitCSVLine(lines[0]).map(h => h.trim());
+
+  return lines.slice(1).map(line => {
+    const values = splitCSVLine(line);
+    const obj = {};
+    headers.forEach((header, i) => {
+      obj[header] = (values[i] || "").trim();
+    });
+    return obj;
+  });
+}
+
+function splitCSVLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i++;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current);
+  return result;
+}
+
+function csvEscape(value) {
+  const str = String(value ?? "");
+  if (str.includes('"') || str.includes(",") || str.includes("\n")) {
+    return `"${str.replaceAll('"', '""')}"`;
+  }
+  return str;
+}
+
+function toCSV(data) {
+  const headers = [
+    "email",
+    "name",
+    "schoolName",
+    "grade",
+    "className",
+    "banName",
+    "deviceNumber"
+  ];
+
+  const rows = [
+    headers,
+    ...data.map(item => [
+      item.email ?? "",
+      item.name ?? "",
+      item.schoolName ?? "",
+      item.grade ?? "",
+      item.className ?? "",
+      item.ban ?? "",
+      item.deviceNumber ?? ""
+    ])
+  ];
+
+  return "\uFEFF" + rows.map(row => row.map(csvEscape).join(",")).join("\n");
+}
+
+function downloadTextFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.style.display = "none";
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+loadTeachers();
