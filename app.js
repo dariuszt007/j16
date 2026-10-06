@@ -70,8 +70,8 @@ function normalizeTeachers(data) {
     schoolName: String(row.schoolName || row["学校名"] || "").trim(),
     grade: String(row.grade || row["年"] || "").trim(),
     className: String(row.className || row["組"] || row.group || "").trim(),
-    ban: String(row.ban || row["番"] || "").trim(),
-    deviceNumber: String(row.deviceNumber || row["端末番号"] || row.role || "").trim()
+    ban: String(row.ban || row.banName || row["番"] || "").trim(),
+    deviceNumber: String(row.deviceNumber || row.deviceName || row["端末番号"] || row.role || "").trim()
   }));
 }
 
@@ -136,7 +136,8 @@ function applyFilters() {
     const textMatch =
       String(t.name || "").toLowerCase().includes(nameVal) ||
       String(t.email || "").toLowerCase().includes(nameVal) ||
-      String(t.deviceNumber || "").toLowerCase().includes(nameVal);
+      String(t.deviceNumber || "").toLowerCase().includes(nameVal) ||
+      String(t.ban || "").toLowerCase().includes(nameVal);
 
     return schoolMatch && gradeMatch && classMatch && textMatch;
   });
@@ -150,7 +151,12 @@ function applyFilters() {
 function sortFilteredTeachers() {
   filteredTeachers.sort((a, b) => {
     for (const sortRule of currentSorts) {
-      const result = compareValues(a[sortRule.key], b[sortRule.key], sortRule.direction, sortRule.key);
+      const result = compareValues(
+        a[sortRule.key],
+        b[sortRule.key],
+        sortRule.direction,
+        sortRule.key
+      );
       if (result !== 0) return result;
     }
     return 0;
@@ -166,7 +172,11 @@ function compareValues(aValue, bValue, direction = "asc", key = "") {
   if (key === "grade" || key === "ban") {
     const aNum = Number(aVal);
     const bNum = Number(bVal);
-    const bothNumeric = aVal !== "" && bVal !== "" && !Number.isNaN(aNum) && !Number.isNaN(bNum);
+    const bothNumeric =
+      aVal !== "" &&
+      bVal !== "" &&
+      !Number.isNaN(aNum) &&
+      !Number.isNaN(bNum);
 
     if (bothNumeric) {
       result = aNum - bNum;
@@ -184,7 +194,8 @@ function setSort(key) {
   const existingIndex = currentSorts.findIndex(sort => sort.key === key);
 
   if (existingIndex === 0) {
-    currentSorts[0].direction = currentSorts[0].direction === "asc" ? "desc" : "asc";
+    currentSorts[0].direction =
+      currentSorts[0].direction === "asc" ? "desc" : "asc";
   } else if (existingIndex > 0) {
     const existing = currentSorts.splice(existingIndex, 1)[0];
     currentSorts.unshift(existing);
@@ -260,8 +271,11 @@ function renderTable() {
   filteredTeachers.forEach(t => {
     const tr = document.createElement("tr");
     const deviceValue = String(t.deviceNumber || "").trim();
-    const isDuplicate = deviceValue && (duplicateInfo.counts.get(deviceValue) || 0) > 1;
-    const duplicateColor = isDuplicate ? duplicateInfo.colorMap.get(deviceValue) : "";
+    const isDuplicate =
+      deviceValue && (duplicateInfo.counts.get(deviceValue) || 0) > 1;
+    const duplicateColor = isDuplicate
+      ? duplicateInfo.colorMap.get(deviceValue)
+      : "";
 
     tr.innerHTML = `
       <td>${escapeHtml(t.email || "")}</td>
@@ -379,7 +393,11 @@ document.querySelectorAll(".sort-btn").forEach(btn => {
 });
 
 exportBtn.addEventListener("click", () => {
-  downloadTextFile("teachers.json", JSON.stringify(teachers, null, 2), "application/json");
+  downloadTextFile(
+    "teachers.json",
+    JSON.stringify(teachers, null, 2),
+    "application/json"
+  );
 });
 
 exportCsvBtn.addEventListener("click", () => {
@@ -389,13 +407,14 @@ exportCsvBtn.addEventListener("click", () => {
 
 downloadSampleCsvBtn.addEventListener("click", () => {
   const sampleRows = [
-    ["email", "name", "schoolName", "grade", "className", "ban", "deviceNumber"],
+    ["email", "name", "schoolName", "grade", "className", "banName", "deviceNumber"],
     ["fujiwara758@o365.suita.ed.jp", "藤原 光矢", "第一小学校", "3", "1", "1", "0012"],
     ["aoyama090@o365.suita.ed.jp", "青山 正道", "第一小学校", "3", "2", "2", "0012"],
     ["ruh302@o365.suita.ed.jp", "安食 葵", "第二小学校", "2", "1", "3", "0045"]
   ];
 
-  const csv = "\uFEFF" + sampleRows.map(row => row.map(csvEscape).join(",")).join("\n");
+  const csv =
+    "\uFEFF" + sampleRows.map(row => row.map(csvEscape).join(",")).join("\n");
   downloadTextFile("sample_teachers.csv", csv, "text/csv;charset=utf-8");
 });
 
@@ -436,8 +455,8 @@ csvFile.addEventListener("change", async (e) => {
       schoolName: String(row.schoolName || row["学校名"] || "").trim(),
       grade: String(row.grade || row["年"] || "").trim(),
       className: String(row.className || row["組"] || row.group || "").trim(),
-      ban: String(row.ban || row["番"] || "").trim(),
-      deviceNumber: String(row.deviceNumber || row["端末番号"] || row.role || "").trim()
+      ban: String(row.ban || row.banName || row["番"] || "").trim(),
+      deviceNumber: String(row.deviceNumber || row.deviceName || row["端末番号"] || row.role || "").trim()
     }));
 
     populateFilterOptionsFromCurrentTeachers();
@@ -501,10 +520,27 @@ function csvEscape(value) {
 }
 
 function toCSV(data) {
-  const headers = ["email", "name", "schoolName", "grade", "className", "ban", "deviceNumber"];
+  const headers = [
+    "email",
+    "name",
+    "schoolName",
+    "grade",
+    "className",
+    "banName",
+    "deviceNumber"
+  ];
+
   const rows = [
     headers,
-    ...data.map(item => headers.map(h => item[h] ?? ""))
+    ...data.map(item => [
+      item.email ?? "",
+      item.name ?? "",
+      item.schoolName ?? "",
+      item.grade ?? "",
+      item.className ?? "",
+      item.ban ?? "",
+      item.deviceNumber ?? ""
+    ])
   ];
 
   return "\uFEFF" + rows.map(row => row.map(csvEscape).join(",")).join("\n");
