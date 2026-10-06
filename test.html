@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<button onclick="test()">
+Test
+</button>
+
+<script>
+
+async function test(){
+
+const response = await fetch(
+"https://api.github.com/repos/dariuszt007/j16"
+);
+
+const data = await response.json();
+
+alert(data.full_name);
+
+}
+
+</script>
+
+</body>
+</html>
