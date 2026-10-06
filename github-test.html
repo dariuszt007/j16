@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<button id="btn">
+Test GitHub Token
+</button>
+
+<pre id="out"></pre>
+
+<script>
+
+const TOKEN =
+"GH_TOKEN";
+
+async function run() {
+
+try {
+
+const response =
+await fetch(
+"https://api.github.com/repos/dariuszt007/j16/contents/teachers.json",
+{
+headers: {
+Authorization:
+`Bearer ${TOKEN}`
+}
+}
+);
+
+const data =
+await response.json();
+
+document
+.getElementById("out")
+.textContent =
+JSON.stringify(
+data,
+null,
+2
+);
+
+}
+catch(e){
+
+document
+.getElementById("out")
+.textContent =
+e.toString();
+
+}
+
+}
+
+document
+.getElementById("btn")
+.addEventListener(
+"click",
+run
+);
+
+</script>
+
+</body>
+</html>
