@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GitHub Save Test</title>
+</head>
+<body>
+
+<button id="saveBtn">
+Test zapisu do GitHub
+</button>
+
+<script>
+
+const TOKEN = "TU_WKLEJ_TOKEN_TESTOWY";
+
+const OWNER = "dariuszt007";
+const REPO = "j16";
+const PATH = "teachers.json";
+
+document
+.getElementById("saveBtn")
+.addEventListener("click", saveFile);
+
+async function saveFile() {
+
+try {
+
+const getResponse =
+await fetch(
+
+`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}\`,
+
+{
+headers: {
+Authorization: `Bearer ${TOKEN}`
+}
+}
+
+);
+
+const fileInfo =
+await getResponse.json();
+
+const sha =
+fileInfo.sha;
+
+const newData = [
+
+{
+name: "TEST",
+grade: "1",
+group: "1",
+role: "API TEST"
+}
+
+];
+
+const content =
+btoa(
+unescape(
+encodeURIComponent(
+JSON.stringify(
+newData,
+null,
+2
+)
+)
+)
+);
+
+const updateResponse =
+await fetch(
+
+`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}\`,
+
+{
+method: "PUT",
+
+headers: {
+Authorization: `Bearer ${TOKEN}`,
+"Content-Type": "application/json"
+},
+
+body: JSON.stringify({
+
+message:
+"Update teachers.json from web",
+
+content:
+content,
+
+sha:
+sha
+
+})
+
+}
+
+);
+
+const result =
+await updateResponse.json();
+
+console.log(result);
+
+alert("Zapis OK");
+
+}
+catch(error){
+
+console.error(error);
+
+alert("Błąd zapisu");
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
