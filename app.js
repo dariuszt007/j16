@@ -151,8 +151,7 @@ function compareJapaneseNumberTextAsc(a, b) {
   const bNum = extractLeadingNumber(bText);
 
   if (aNum !== null && bNum !== null) {
-    if (aNum !== bNum) return aNum - bNum;
-    return aText.localeCompare(bText, "ja", { sensitivity: "base" });
+    return aNum - bNum;
   }
 
   if (aNum !== null && bNum === null) return -1;
