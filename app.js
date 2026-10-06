@@ -10,8 +10,6 @@ let currentSorts = [
 ];
 
 const DEFAULT_SORT_ORDER = ["grade", "className", "ban"];
-const NUMERIC_SORT_KEYS = new Set(["grade", "className", "ban"]);
-
 const DUPLICATE_COLORS = [
   "#ffe0e0",
   "#e0f0ff",
@@ -59,17 +57,12 @@ async function loadTeachers() {
     const res = await fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (!res.ok) throw new Error("Nie udało się wczytać teachers.json");
     const data = await res.json();
-
-    if (!Array.isArray(data)) {
-      throw new Error("Plik teachers.json musi zawierać tablicę.");
-    }
-
-    teachers = normalizeTeachers(data);
+    teachers = Array.isArray(data) ? normalizeTeachers(data) : [];
     populateFilterOptionsFromCurrentTeachers();
     applyFilters();
   } catch (err) {
     console.error(err);
-    alert(err.message || "Nie udało się wczytać teachers.json");
+    alert(err.message);
   }
 }
 
@@ -93,67 +86,6 @@ function safeId(index = 0) {
   return "id_" + Date.now() + "_" + index;
 }
 
-function normalizeNumericString(value) {
-  return String(value ?? "").trim().replace(",", ".");
-}
-
-function isPureNumber(value) {
-  return /^-?\d+(\.\d+)?$/.test(normalizeNumericString(value));
-}
-
-function compareNumericStrings(aValue, bValue) {
-  const aVal = normalizeNumericString(aValue);
-  const bVal = normalizeNumericString(bValue);
-
-  const aIsNum = isPureNumber(aVal);
-  const bIsNum = isPureNumber(bVal);
-
-  if (aIsNum && bIsNum) {
-    const diff = Number(aVal) - Number(bVal);
-    if (diff !== 0) return diff;
-    return aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
-  }
-
-  if (aIsNum && !bIsNum) return -1;
-  if (!aIsNum && bIsNum) return 1;
-
-  return aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
-}
-
-function compareValues(aValue, bValue, direction = "asc", key = "") {
-  const aVal = String(aValue || "").trim();
-  const bVal = String(bValue || "").trim();
-
-  let result;
-
-  if (NUMERIC_SORT_KEYS.has(key)) {
-    result = compareNumericStrings(aVal, bVal);
-  } else {
-    result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
-  }
-
-  return direction === "asc" ? result : -result;
-}
-
-function getSortedTeachersForExport() {
-  const data = [...teachers];
-
-  data.sort((a, b) => {
-    for (const sortRule of currentSorts) {
-      const result = compareValues(
-        a[sortRule.key],
-        b[sortRule.key],
-        sortRule.direction,
-        sortRule.key
-      );
-      if (result !== 0) return result;
-    }
-    return 0;
-  });
-
-  return data;
-}
-
 function syncJsonEditor() {
   jsonOutput.value = JSON.stringify(teachers, null, 2);
 }
@@ -165,16 +97,17 @@ function populateFilterOptionsFromCurrentTeachers() {
 }
 
 function uniqueValues(data, key) {
-  return [...new Set(
+  const values = [...new Set(
     data
       .map(item => String(item[key] || "").trim())
       .filter(Boolean)
-  )].sort((a, b) => {
-    if (NUMERIC_SORT_KEYS.has(key)) {
-      return compareNumericStrings(a, b);
-    }
-    return a.localeCompare(b, "ja", { sensitivity: "base" });
-  });
+  )];
+
+  if (key === "grade" || key === "className" || key === "ban") {
+    return values.sort(compareNumericTextAsc);
+  }
+
+  return values.sort((a, b) => a.localeCompare(b, "ja", { sensitivity: "base" }));
 }
 
 function fillSelect(selectEl, defaultLabel, values) {
@@ -198,6 +131,31 @@ function fillSelect(selectEl, defaultLabel, values) {
   } else {
     selectEl.value = "";
   }
+}
+
+function normalizeNumberText(value) {
+  return String(value ?? "").trim();
+}
+
+function isIntegerLike(value) {
+  return /^\d+$/.test(normalizeNumberText(value));
+}
+
+function compareNumericTextAsc(a, b) {
+  const aText = normalizeNumberText(a);
+  const bText = normalizeNumberText(b);
+
+  const aIsNum = isIntegerLike(aText);
+  const bIsNum = isIntegerLike(bText);
+
+  if (aIsNum && bIsNum) {
+    return parseInt(aText, 10) - parseInt(bText, 10);
+  }
+
+  if (aIsNum && !bIsNum) return -1;
+  if (!aIsNum && bIsNum) return 1;
+
+  return aText.localeCompare(bText, "ja", { sensitivity: "base" });
 }
 
 function applyFilters() {
@@ -238,6 +196,21 @@ function sortFilteredTeachers() {
     }
     return 0;
   });
+}
+
+function compareValues(aValue, bValue, direction = "asc", key = "") {
+  const aVal = String(aValue || "").trim();
+  const bVal = String(bValue || "").trim();
+
+  let result;
+
+  if (key === "grade" || key === "className" || key === "ban") {
+    result = compareNumericTextAsc(aVal, bVal);
+  } else {
+    result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
+  }
+
+  return direction === "asc" ? result : -result;
 }
 
 function setSort(key) {
@@ -441,7 +414,7 @@ teacherForm.addEventListener("submit", (e) => {
   teacherDialog.close();
   populateFilterOptionsFromCurrentTeachers();
   applyFilters();
-}
+});
 
 cancelBtn.addEventListener("click", () => teacherDialog.close());
 addBtn.addEventListener("click", openAddDialog);
@@ -457,6 +430,25 @@ document.querySelectorAll(".sort-btn").forEach(btn => {
     setSort(btn.dataset.sort);
   });
 });
+
+function getSortedTeachersForExport() {
+  const data = [...teachers];
+
+  data.sort((a, b) => {
+    for (const sortRule of currentSorts) {
+      const result = compareValues(
+        a[sortRule.key],
+        b[sortRule.key],
+        sortRule.direction,
+        sortRule.key
+      );
+      if (result !== 0) return result;
+    }
+    return 0;
+  });
+
+  return data;
+}
 
 exportBtn.addEventListener("click", () => {
   const sortedData = getSortedTeachersForExport();
@@ -488,7 +480,7 @@ downloadSampleCsvBtn.addEventListener("click", () => {
 
 copyBtn.addEventListener("click", async () => {
   try {
-    await navigator.clipboard.writeText(JSON.stringify(getSortedTeachersForExport(), null, 2));
+    await navigator.clipboard.writeText(JSON.stringify(teachers, null, 2));
     alert("JSON skopiowany do schowka.");
   } catch {
     alert("Nie udało się skopiować. Skopiuj ręcznie z pola poniżej.");
@@ -531,6 +523,7 @@ csvFile.addEventListener("change", async (e) => {
     applyFilters();
     alert("CSV został zaimportowany.");
   } catch (err) {
+    console.error(err);
     alert("Nie udało się odczytać CSV.");
   }
 
