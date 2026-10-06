@@ -104,7 +104,7 @@ function uniqueValues(data, key) {
   )];
 
   if (key === "grade" || key === "className" || key === "ban") {
-    return values.sort(compareJapaneseNumberTextAsc);
+    return values.sort(compareNumericTextAsc);
   }
 
   return values.sort((a, b) => a.localeCompare(b, "ja", { sensitivity: "base" }));
@@ -137,22 +137,28 @@ function normalizeNumberText(value) {
   return String(value ?? "").trim();
 }
 
-function extractSortNumber(value) {
+function toNumericOrNull(value) {
   const text = normalizeNumberText(value);
-  const match = text.match(/^\d+/);
-  return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
+  if (/^\d+$/.test(text)) {
+    return parseInt(text, 10);
+  }
+  return null;
 }
 
-function compareJapaneseNumberTextAsc(a, b) {
+function compareNumericTextAsc(a, b) {
   const aText = normalizeNumberText(a);
   const bText = normalizeNumberText(b);
 
-  const aNum = extractSortNumber(aText);
-  const bNum = extractSortNumber(bText);
+  const aNum = toNumericOrNull(aText);
+  const bNum = toNumericOrNull(bText);
 
-  if (aNum !== bNum) {
-    return aNum - bNum;
+  if (aNum !== null && bNum !== null) {
+    if (aNum !== bNum) return aNum - bNum;
+    return aText.localeCompare(bText, "ja", { sensitivity: "base" });
   }
+
+  if (aNum !== null && bNum === null) return -1;
+  if (aNum === null && bNum !== null) return 1;
 
   return aText.localeCompare(bText, "ja", { sensitivity: "base" });
 }
@@ -189,7 +195,7 @@ function compareValues(aValue, bValue, direction = "asc", key = "") {
   let result;
 
   if (key === "grade" || key === "className" || key === "ban") {
-    result = compareJapaneseNumberTextAsc(aVal, bVal);
+    result = compareNumericTextAsc(aVal, bVal);
   } else {
     result = aVal.localeCompare(bVal, "ja", { sensitivity: "base" });
   }
@@ -458,9 +464,9 @@ exportCsvBtn.addEventListener("click", () => {
 downloadSampleCsvBtn.addEventListener("click", () => {
   const sampleRows = [
     ["email", "name", "schoolName", "grade", "className", "banName", "deviceNumber"],
-    ["fujiwara758@o365.suita.ed.jp", "藤原 光矢", "第一小学校", "3年", "1組", "1番", "0012"],
-    ["aoyama090@o365.suita.ed.jp", "青山 正道", "第一小学校", "3年", "2組", "2番", "0012"],
-    ["ruh302@o365.suita.ed.jp", "安食 葵", "第二小学校", "2年", "1組", "3番", "0045"]
+    ["fujiwara758@o365.suita.ed.jp", "藤原 光矢", "第一小学校", "3", "1", "1", "0012"],
+    ["aoyama090@o365.suita.ed.jp", "青山 正道", "第一小学校", "3", "2", "2", "0012"],
+    ["ruh302@o365.suita.ed.jp", "安食 葵", "第二小学校", "2", "1", "3", "0045"]
   ];
 
   const csv =
