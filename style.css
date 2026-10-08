@@ -21,17 +21,112 @@
   --radius: 12px;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
 
-.app {
-  max-width: 1200px;
-  margin: 0 auto;
+.hidden {
+  display: none !important;
+}
+
+.hidden-toolbar {
+  display: none !important;
+}
+
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
   padding: 16px;
+}
+
+.login-card {
+  width: min(100%, 420px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.login-text {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.login-error {
+  margin: 0;
+  color: var(--danger-hover);
+  font-weight: 600;
+}
+
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 10px 12px 10px;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.list-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  padding: 0 0 10px;
+  flex-shrink: 0;
+}
+
+.topbar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.toggle-toolbar-btn {
+  background: #eef2f7;
+  color: #223;
+  border: 1px solid #ccd3da;
+  min-height: 40px;
+  padding: 10px 14px;
+}
+
+.toggle-toolbar-btn:hover {
+  background: #e3e8ef;
 }
 
 h1,
@@ -43,9 +138,17 @@ h3 {
 .toolbar,
 .filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
-  margin-bottom: 14px;
+}
+
+.toolbar {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+.filters {
+  grid-template-columns: 1fr 1fr 1fr 1fr 1.8fr;
+  margin-bottom: 0;
 }
 
 button,
@@ -101,11 +204,17 @@ select {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 1220px;
 }
 
@@ -115,13 +224,14 @@ td {
   padding: 10px;
   text-align: left;
   vertical-align: middle;
+  background: #ffffff;
 }
 
-th {
+thead th {
   background: #f8fafc;
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 50;
   white-space: nowrap;
 }
 
@@ -176,7 +286,7 @@ th {
 }
 
 .editor {
-  margin-top: 18px;
+  display: none !important;
 }
 
 textarea {
@@ -276,18 +386,92 @@ dialog::backdrop {
   color: #1769aa;
 }
 
+@media (max-width: 1100px) {
+  .toolbar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 521px) and (max-width: 1024px) and (orientation: portrait) {
+  .filters {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "type device"
+      "grade class"
+      "search search";
+    gap: 8px;
+  }
+
+  .filters > *:nth-child(1) {
+    grid-area: type;
+  }
+
+  .filters > *:nth-child(2) {
+    grid-area: grade;
+  }
+
+  .filters > *:nth-child(3) {
+    grid-area: class;
+  }
+
+  .filters > *:nth-child(4) {
+    grid-area: device;
+  }
+
+  .filters > *:nth-child(5) {
+    grid-area: search;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) and (orientation: landscape) {
+  .filters {
+    grid-template-columns: 0.9fr 0.7fr 0.7fr 1fr 1.8fr;
+    gap: 8px;
+  }
+
+  .filters > * {
+    min-width: 0;
+  }
+
+  .filters select,
+  .filters input {
+    min-width: 0;
+    padding: 10px;
+    font-size: 0.95rem;
+  }
+}
+
 @media (max-width: 768px) {
   .app {
-    padding: 12px;
+    padding: 8px 10px 8px;
   }
 
   h1 {
     font-size: 1.4rem;
   }
 
-  .toolbar,
+  .topbar-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .toggle-toolbar-btn {
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 10px;
+  }
+
+  .toolbar {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
   .filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 
   table {
@@ -296,9 +480,76 @@ dialog::backdrop {
 }
 
 @media (max-width: 520px) {
-  .toolbar,
-  .filters {
+  .app {
+    padding: 6px 8px 6px;
+  }
+
+  .topbar {
+    padding-bottom: 6px;
+  }
+
+  .topbar-header {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .toggle-toolbar-btn {
+    width: 100%;
+    min-height: 34px;
+    padding: 7px 10px;
+  }
+
+  .toolbar {
     grid-template-columns: 1fr;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .toolbar.hidden-toolbar {
+    display: none !important;
+  }
+
+  .filters {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "type device"
+      "grade class"
+      "search search";
+    gap: 6px;
+  }
+
+  .filters > *:nth-child(1) {
+    grid-area: type;
+  }
+
+  .filters > *:nth-child(2) {
+    grid-area: grade;
+  }
+
+  .filters > *:nth-child(3) {
+    grid-area: class;
+  }
+
+  .filters > *:nth-child(4) {
+    grid-area: device;
+  }
+
+  .filters > *:nth-child(5) {
+    grid-area: search;
+  }
+
+  button,
+  .file-label,
+  input,
+  select {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+  }
+
+  th,
+  td {
+    padding: 8px;
   }
 
   .dialog-actions {
@@ -307,5 +558,9 @@ dialog::backdrop {
 
   .dialog-actions button {
     width: 100%;
+  }
+
+  textarea {
+    min-height: 180px;
   }
 }
