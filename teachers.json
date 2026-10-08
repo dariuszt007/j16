@@ -28,9 +28,9 @@
     "grade": "",
     "className": "",
     "ban": "",
-    "deviceNumber": "69013",
-    "usageStatus": "使用不可",
-    "remarks": "パスコードリセットが必要。WiFiがないので、GIGA-HUBで申請出しました。"
+    "deviceNumber": "65431",
+    "usageStatus": "使用可",
+    "remarks": ""
   },
   {
     "email": "4",
@@ -1172,7 +1172,7 @@
     "grade": "1",
     "className": "3",
     "ban": "24",
-    "deviceNumber": "65431",
+    "deviceNumber": "69013",
     "usageStatus": "使用可",
     "remarks": ""
   },
