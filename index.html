@@ -6,83 +6,114 @@
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   />
-  <title>Lista nauczycieli</title>
+  <title>Lista</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app">
-    <h1>Lista uczniów 青山台中学校</h1>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <h1>Lista</h1>
+      <p class="login-text">Ta strona jest chroniona hasłem.</p>
 
-    <div class="toolbar">
-      <label class="file-label">
-        Import CSV
-        <input type="file" id="csvFile" accept=".csv,text/csv" hidden />
-      </label>
+      <form id="loginForm" class="login-form">
+        <label>
+          Hasło
+          <input type="password" id="passwordInput" autocomplete="current-password" />
+        </label>
 
-      <button type="button" id="downloadSampleCsvBtn">Pobierz przykładowy CSV</button>
-      <button type="button" id="exportBtn">Eksport JSON</button>
-      <button type="button" id="exportCsvBtn">Eksport CSV</button>
-      <button type="button" id="copyBtn">Kopiuj JSON</button>
-      <button type="button" id="addBtn">Dodaj nauczyciela</button>
+        <p id="loginError" class="login-error" hidden>Nieprawidłowe hasło.</p>
+
+        <button type="submit">Wejdź</button>
+      </form>
     </div>
+  </div>
 
-    <div class="filters">
-      <select id="filterType">
-        <option value="">タイプ / wszystkie</option>
-      </select>
+  <div class="app hidden" id="appContent">
+    <section class="list-panel">
+      <div class="topbar">
+        <div class="topbar-header">
+          <button type="button" id="toggleToolbarBtn" class="toggle-toolbar-btn">
+            Ukryj przyciski
+          </button>
+        </div>
 
-      <select id="filterGrade">
-        <option value="">年 / wszystkie</option>
-      </select>
+        <div class="toolbar" id="toolbar">
+          <label class="file-label">
+            Import CSV
+            <input type="file" id="csvFile" accept=".csv,text/csv" hidden />
+          </label>
 
-      <select id="filterClass">
-        <option value="">組 / wszystkie</option>
-      </select>
+          <button type="button" id="downloadSampleCsvBtn">Pobierz przykładowy CSV</button>
+          <button type="button" id="exportCsvBtn">Eksport CSV</button>
+          <button type="button" id="copyBtn">Kopiuj JSON</button>
+          <button type="button" id="addBtn">Dodaj nauczyciela</button>
+        </div>
 
-      <input
-        type="text"
-        id="filterName"
-        placeholder="Szukaj po imieniu, nazwisku, emailu, 番, 端末番号, 備考"
-      />
-    </div>
+        <div class="filters">
+          <select id="filterType">
+            <option value="">タイプ</option>
+          </select>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>
-              <button type="button" class="sort-btn" data-sort="email">Email</button>
-            </th>
-            <th>
-              <button type="button" class="sort-btn" data-sort="name">名前</button>
-            </th>
-            <th>
-              <button type="button" class="sort-btn" data-sort="type">タイプ</button>
-            </th>
-            <th>
-              <button type="button" class="sort-btn" data-sort="grade">年</button>
-            </th>
-            <th>
-              <button type="button" class="sort-btn" data-sort="className">組</button>
-            </th>
-            <th>
-              <button type="button" class="sort-btn" data-sort="ban">番</button>
-            </th>
-            <th>
-              <button type="button" class="sort-btn" data-sort="deviceNumber">端末番号</button>
-            </th>
-            <th>
-              <button type="button" class="sort-btn" data-sort="usageStatus">使用可否</button>
-            </th>
-            <th>
-              <button type="button" class="sort-btn" data-sort="remarks">備考</button>
-            </th>
-            <th>Akcje</th>
-          </tr>
-        </thead>
-        <tbody id="teacherTableBody"></tbody>
-      </table>
-    </div>
+          <select id="filterGrade">
+            <option value="">年</option>
+          </select>
+
+          <select id="filterClass">
+            <option value="">組</option>
+          </select>
+
+          <select id="filterDuplicate">
+            <option value="">端末番号</option>
+            <option value="duplicate">duplikaty</option>
+            <option value="unique">unikalne</option>
+          </select>
+
+          <input
+            type="text"
+            id="filterName"
+            placeholder="Szukaj po imieniu, nazwisku, emailu, 番, 端末番号, 備考"
+          />
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <button type="button" class="sort-btn" data-sort="email">Email</button>
+              </th>
+              <th>
+                <button type="button" class="sort-btn" data-sort="name">名前</button>
+              </th>
+              <th>
+                <button type="button" class="sort-btn" data-sort="type">タイプ</button>
+              </th>
+              <th>
+                <button type="button" class="sort-btn" data-sort="grade">年</button>
+              </th>
+              <th>
+                <button type="button" class="sort-btn" data-sort="className">組</button>
+              </th>
+              <th>
+                <button type="button" class="sort-btn" data-sort="ban">番</button>
+              </th>
+              <th>
+                <button type="button" class="sort-btn" data-sort="deviceNumber">端末番号</button>
+              </th>
+              <th>
+                <button type="button" class="sort-btn" data-sort="usageStatus">使用可否</button>
+              </th>
+              <th>
+                <button type="button" class="sort-btn" data-sort="remarks">備考</button>
+              </th>
+              <th>Akcje</th>
+            </tr>
+          </thead>
+          <tbody id="teacherTableBody"></tbody>
+        </table>
+      </div>
+    </section>
 
     <div class="editor">
       <h2>Edytor JSON</h2>
