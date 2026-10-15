@@ -154,6 +154,17 @@
     "remarks": "支援"
   },
   {
+    "email": "15",
+    "name": "新予備機",
+    "type": "予備機",
+    "grade": "",
+    "className": "",
+    "ban": "",
+    "deviceNumber": "68831",
+    "usageStatus": "使用可",
+    "remarks": "提出 2026-10-15　大川内　稜\t3\t4\t9"
+  },
+  {
     "email": "33130101@o365.suita.ed.jp",
     "name": "浅井　実咲",
     "type": "児童・生徒",
@@ -4472,9 +4483,9 @@
     "grade": "3",
     "className": "4",
     "ban": "9",
-    "deviceNumber": "68831",
-    "usageStatus": "使用可",
-    "remarks": ""
+    "deviceNumber": "",
+    "usageStatus": "使用不可",
+    "remarks": "提出"
   },
   {
     "email": "33110210@o365.suita.ed.jp",
